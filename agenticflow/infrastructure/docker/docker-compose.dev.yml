@@ -1,0 +1,108 @@
+version: "3.9"
+
+# AgenticFlow — Local Dev Infrastructure
+# Usage: docker compose -f infrastructure/docker/docker-compose.dev.yml up -d
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: af_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agenticflow
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: agenticflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - af_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agenticflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: af_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - af_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: af_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"    # S3 API
+      - "9001:9001"    # Web console → http://localhost:9001
+    volumes:
+      - af_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio_init:
+    image: minio/mc:latest
+    container_name: af_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/agenticflow-datasets &&
+      mc mb --ignore-existing local/agenticflow-models &&
+      echo 'MinIO buckets ready'
+      "
+
+  # Optional: Celery Flower dashboard → http://localhost:5555
+  flower:
+    image: mher/flower:2.0
+    container_name: af_flower
+    restart: unless-stopped
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/1
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    profiles:
+      - monitoring
+
+  # Optional: pgAdmin → http://localhost:5050
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: af_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@agenticflow.io
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    profiles:
+      - monitoring
+
+volumes:
+  af_postgres_data:
+  af_redis_data:
+  af_minio_data:
+
+networks:
+  default:
+    name: agenticflow_dev

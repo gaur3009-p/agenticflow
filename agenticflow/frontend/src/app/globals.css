@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary:   #0a0a0f;
+  --bg-secondary: #111118;
+  --bg-tertiary:  #1a1a24;
+  --accent:       #7c6aff;
+  --accent-light: #a594ff;
+  --green:        #22d3a0;
+  --amber:        #f0a830;
+  --red:          #f05858;
+  --pink:         #e870c8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-primary);
+  color: #f0f0fa;
+  font-family: 'Syne', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* Focus rings */
+*:focus-visible { outline: 2px solid rgba(124,106,255,0.5); outline-offset: 2px; border-radius: 4px; }
+
+/* Form elements */
+input, textarea, select {
+  color-scheme: dark;
+}
+
+/* Animated gradient glow for hero */
+.hero-glow {
+  background: radial-gradient(ellipse at 50% 0%, rgba(124,106,255,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Code blocks */
+pre, code { font-family: 'JetBrains Mono', monospace; }
+
+/* Status colors */
+.status-live     { color: #22d3a0; }
+.status-training { color: #f0a830; }
+.status-error    { color: #f05858; }
+.status-draft    { color: rgba(255,255,255,0.4); }
+
+/* Transition defaults */
+.transition-default { transition: all 0.15s ease; }

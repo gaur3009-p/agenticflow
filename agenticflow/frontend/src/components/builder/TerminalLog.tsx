@@ -1,0 +1,1 @@
+export { TerminalLog } from "./index";

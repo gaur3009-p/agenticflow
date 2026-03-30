@@ -1,0 +1,92 @@
+version: "3.9"
+
+# AgenticFlow — Production Stack
+# Usage: docker compose -f infrastructure/docker/docker-compose.prod.yml up -d
+
+services:
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: ../infrastructure/docker/Dockerfile.backend
+    container_name: af_backend
+    restart: unless-stopped
+    env_file: ../../.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # For sandbox orchestration
+
+  celery_worker:
+    build:
+      context: ../../backend
+      dockerfile: ../infrastructure/docker/Dockerfile.backend
+    container_name: af_celery
+    restart: unless-stopped
+    env_file: ../../.env
+    command: celery -A app.worker worker -Q training,eval,default --concurrency=2 --loglevel=info
+    depends_on:
+      - redis
+      - postgres
+    volumes:
+      - af_lora_outputs:/app/lora_outputs
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: ../infrastructure/docker/Dockerfile.frontend
+    container_name: af_frontend
+    restart: unless-stopped
+    env_file: ../../.env
+    ports:
+      - "3000:3000"
+
+  nginx:
+    image: nginx:alpine
+    container_name: af_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agenticflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-agenticflow}
+    volumes:
+      - af_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agenticflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - af_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  af_postgres_data:
+  af_redis_data:
+  af_lora_outputs:
