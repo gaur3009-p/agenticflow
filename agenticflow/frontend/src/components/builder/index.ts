@@ -2,6 +2,7 @@
 /**
  * AgenticFlow — Builder Sub-Components
  * SandboxChat | TerminalLog | EvalDashboard | GraphView | CodeExport
+ *agenticflow/frontend/src/components/builder/index.ts:
  */
 import { useState, useRef, useEffect } from "react";
 import { Send, Copy, Check, RefreshCw, Loader2 } from "lucide-react";
