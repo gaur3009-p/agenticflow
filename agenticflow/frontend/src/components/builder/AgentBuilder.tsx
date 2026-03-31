@@ -2,6 +2,7 @@
 /**
  * AgenticFlow — Agent Builder Component
  * The main 4-step build flow: Intake → Compile → Sandbox → Eval
+ * agenticflow/frontend/src/components/builder/AgentBuilder.tsx:
  */
 import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
